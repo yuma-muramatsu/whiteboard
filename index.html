@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskGrid - タスク管理</title>
+  <meta name="description" content="16マスグリッドで○△□の優先度を管理するシンプルなタスクボード">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Header -->
+  <header id="appHeader">
+    <div class="header-left">
+      <h1 id="appTitle">TaskGrid</h1>
+      <span class="header-subtitle">タスク管理ボード</span>
+    </div>
+    <div class="header-right">
+      <button id="addSetBtn" title="セットを追加">＋ セット追加</button>
+      <button id="collapseAllBtn" title="すべて折りたたむ">⊟ すべて折りたたむ</button>
+      <button id="saveBtn" title="保存">💾 保存</button>
+      <button id="loadBtn" title="読込">📂 読込</button>
+      <button id="exportBtn" title="JSONエクスポート">⇩ エクスポート</button>
+      <button id="importBtn" title="JSONインポート">⇧ インポート</button>
+      <input type="file" id="importInput" accept=".json" style="display:none">
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="setsContainer">
+    <!-- Sets will be dynamically inserted here -->
+  </main>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- JavaScript -->
+  <script src="js/app.js"></script>
+</body>
+
+</html>
