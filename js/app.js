@@ -34,8 +34,8 @@
     }
 
     // Ensure state defaults
-    if (!state.rows) state.rows = 4;
-    if (!state.cols) state.cols = 4;
+    if (!state.rows) state.rows = 2;
+    if (!state.cols) state.cols = 2;
     if (!state.sets || state.sets.length === 0) {
       state.sets = [];
       const total = state.rows * state.cols;
@@ -363,9 +363,9 @@
 
     // Reset Board
     resetBoardBtn.addEventListener('click', () => {
-      if (confirm('ボードを初期化し、内容をすべて消去して 4×4 の構成に戻しますか？')) {
-        state.rows = 4;
-        state.cols = 4;
+      if (confirm('ボードを初期化し、内容をすべて消去して 2×2 の構成に戻しますか？')) {
+        state.rows = 2;
+        state.cols = 2;
         state.sets = [];
         const total = state.rows * state.cols;
         for (let i = 0; i < total; i++) {
