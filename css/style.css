@@ -55,6 +55,11 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.10);
+
+  /* Layout */
+  --cols: 2;
+  /* Updated via JS */
+  --set-width: 480px;
 }
 
 /* ===== Base Reset ===== */
@@ -77,7 +82,7 @@ body {
   background-color: var(--color-bg);
   line-height: 1.5;
   min-height: 100vh;
-  overflow-y: auto;
+  overflow: auto;
 }
 
 /* Scrollbar */
@@ -99,21 +104,40 @@ body {
   background: rgba(0, 0, 0, 0.22);
 }
 
-/* ===== Header ===== */
-#appHeader {
-  position: sticky;
+/* ===== Header & Trigger ===== */
+#headerTrigger {
+  position: fixed;
   top: 0;
+  left: 0;
+  width: 100%;
+  height: 15px;
   z-index: 100;
+}
+
+#appHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 110;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-sm) var(--space-xl);
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(8px);
   gap: var(--space-md);
   flex-wrap: wrap;
+  transform: translateY(-100%);
+  transition: transform var(--transition-normal);
+}
+
+/* Show Header on Hover over Trigger or Header itself */
+#headerTrigger:hover~#appHeader,
+#appHeader:hover {
+  transform: translateY(0);
 }
 
 .header-left {
@@ -129,8 +153,8 @@ body {
   letter-spacing: -0.5px;
 }
 
-.header-subtitle {
-  font-size: var(--font-size-sm);
+.hint-text {
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 
@@ -166,14 +190,69 @@ body {
   background: var(--color-btn-active);
 }
 
-/* ===== Main Container ===== */
-#setsContainer {
-  padding: var(--space-xl);
+/* ===== Main Board Layout ===== */
+.board-wrapper {
+  padding: calc(var(--space-xl) + 20px) var(--space-xl) var(--space-xl) var(--space-xl);
+  /* Add top padding to account for trigger */
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-xl);
+  min-width: max-content;
+  /* allows horizontal scroll if grid is large */
+  margin: 0 auto;
+  align-items: flex-start;
+  /* prevent stretching buttons too high initially, but col-add runs full height of content */
+  justify-content: flex-start;
+}
+
+.board-content {
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
-  max-width: 1400px;
-  margin: 0 auto;
+}
+
+#setsGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--set-width));
+  gap: var(--space-xl);
+}
+
+/* Add Buttons (Row / Col) */
+.add-btn {
+  background: transparent;
+  border: 2px dashed var(--color-border-strong);
+  color: var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+}
+
+.add-btn:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.row-add-btn {
+  height: 60px;
+  width: 100%;
+  /* Spans the width of board-content */
+}
+
+.col-add-btn {
+  width: 60px;
+  height: auto;
+  /* Let it stretch or be a fixed height? Using flex stretch */
+  align-self: stretch;
+  /* Stretches to match board-content height */
+  min-height: 200px;
 }
 
 /* ===== Set Container ===== */
@@ -184,6 +263,7 @@ body {
   box-shadow: var(--shadow-md);
   overflow: hidden;
   animation: fadeInUp var(--transition-smooth);
+  width: 100%;
 }
 
 @keyframes fadeInUp {
@@ -191,6 +271,7 @@ body {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -240,7 +321,7 @@ body {
   font-weight: 600;
   font-family: var(--font-family);
   color: var(--color-text);
-  width: 300px;
+  width: 180px;
   cursor: text;
 }
 
@@ -283,12 +364,6 @@ body {
   border-color: var(--color-border-strong);
 }
 
-.set-header-right .btn-danger:hover {
-  background: var(--color-btn-danger);
-  color: var(--color-text-inverse);
-  border-color: var(--color-btn-danger);
-}
-
 /* Set Body / Grid */
 .set-body {
   padding: var(--space-md);
@@ -321,7 +396,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  min-height: 80px;
+  min-height: 100px;
   transition: background-color var(--transition-normal);
   position: relative;
 }
@@ -463,39 +538,4 @@ body {
 .toast.visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
-}
-
-/* ===== Responsive ===== */
-@media (max-width: 900px) {
-  #setsContainer {
-    padding: var(--space-md);
-  }
-
-  .task-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  #appHeader {
-    padding: var(--space-sm) var(--space-md);
-  }
-
-  .set-title-input {
-    width: 160px;
-  }
-}
-
-@media (max-width: 500px) {
-  .task-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .header-right {
-    gap: var(--space-xs);
-  }
-
-  .header-right button {
-    font-size: var(--font-size-xs);
-    padding: var(--space-xs) var(--space-sm);
-    height: 26px;
-  }
 }

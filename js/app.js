@@ -1,26 +1,23 @@
-// ===== TaskGrid - Main Application =====
+// ===== TaskGrid (whiteboard) - Main Application =====
 
 (() => {
   'use strict';
 
   // --- State ---
   let state = {
+    rows: 2,
+    cols: 2,
     sets: []
   };
 
   const GRID_SIZE = 16; // 4x4
-  const DEFAULT_SET_COUNT = 4;
-  const STORAGE_KEY = 'taskgrid_data';
+  const STORAGE_KEY = 'taskgrid_data_v2';
 
   // --- DOM References ---
-  const setsContainer = document.getElementById('setsContainer');
-  const addSetBtn = document.getElementById('addSetBtn');
+  const setsGrid = document.getElementById('setsGrid');
+  const addRowBtn = document.getElementById('addRowBtn');
+  const addColBtn = document.getElementById('addColBtn');
   const collapseAllBtn = document.getElementById('collapseAllBtn');
-  const saveBtn = document.getElementById('saveBtn');
-  const loadBtn = document.getElementById('loadBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const importBtn = document.getElementById('importBtn');
-  const importInput = document.getElementById('importInput');
   const toastEl = document.getElementById('toast');
 
   // --- Initialization ---
@@ -31,23 +28,27 @@
       try {
         state = JSON.parse(saved);
       } catch (e) {
-        state = { sets: [] };
+        state = { rows: 2, cols: 2, sets: [] };
       }
     }
 
-    // Ensure at least DEFAULT_SET_COUNT sets
-    if (state.sets.length === 0) {
-      for (let i = 0; i < DEFAULT_SET_COUNT; i++) {
-        state.sets.push(createEmptySet(i + 1));
+    // Ensure state defaults (2x2 grid)
+    if (!state.rows) state.rows = 2;
+    if (!state.cols) state.cols = 2;
+    if (!state.sets || state.sets.length === 0) {
+      state.sets = [];
+      const total = state.rows * state.cols;
+      for (let i = 0; i < total; i++) {
+        state.sets.push(createEmptySet());
       }
     }
 
     render();
-    bindHeaderEvents();
+    bindEvents();
   }
 
   // --- Data Helpers ---
-  function createEmptySet(num) {
+  function createEmptySet() {
     const cells = [];
     for (let i = 0; i < GRID_SIZE; i++) {
       cells.push({
@@ -60,7 +61,7 @@
     }
     return {
       id: generateId(),
-      title: `セット ${num}`,
+      title: `セット`,
       collapsed: false,
       cells: cells
     };
@@ -87,9 +88,16 @@
 
   // --- Render ---
   function render() {
-    setsContainer.innerHTML = '';
+    // Update CSS Variable for dynamic grid columns
+    document.documentElement.style.setProperty('--cols', state.cols);
+
+    setsGrid.innerHTML = '';
     state.sets.forEach((set, setIndex) => {
-      setsContainer.appendChild(renderSet(set, setIndex));
+      // Ensure titles update sequentially for UX if left as default
+      if (set.title === 'セット' || set.title.startsWith('セット ')) {
+        set.title = `セット ${setIndex + 1}`;
+      }
+      setsGrid.appendChild(renderSet(set, setIndex));
     });
     autoSave();
   }
@@ -136,10 +144,10 @@
 
     const clearBtn = document.createElement('button');
     clearBtn.textContent = 'クリア';
-    clearBtn.title = 'このセットの内容をクリア';
+    clearBtn.title = '内容をクリア';
     clearBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (confirm(`「${set.title || 'このセット'}」の内容をクリアしますか？`)) {
+      if (confirm(`「${set.title}」の内容をクリアしますか？`)) {
         set.cells.forEach(cell => {
           cell.text = '';
           cell.circle = false;
@@ -148,53 +156,11 @@
           cell.closed = false;
         });
         render();
-        showToast('セットをクリアしました');
-      }
-    });
-
-    const moveUpBtn = document.createElement('button');
-    moveUpBtn.textContent = '↑';
-    moveUpBtn.title = '上へ移動';
-    moveUpBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (setIndex > 0) {
-        [state.sets[setIndex - 1], state.sets[setIndex]] = [state.sets[setIndex], state.sets[setIndex - 1]];
-        render();
-      }
-    });
-
-    const moveDownBtn = document.createElement('button');
-    moveDownBtn.textContent = '↓';
-    moveDownBtn.title = '下へ移動';
-    moveDownBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (setIndex < state.sets.length - 1) {
-        [state.sets[setIndex], state.sets[setIndex + 1]] = [state.sets[setIndex + 1], state.sets[setIndex]];
-        render();
-      }
-    });
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = '✕ 削除';
-    deleteBtn.className = 'btn-danger';
-    deleteBtn.title = 'このセットを削除';
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (state.sets.length <= 1) {
-        showToast('最後のセットは削除できません');
-        return;
-      }
-      if (confirm(`「${set.title || 'このセット'}」を削除しますか？`)) {
-        state.sets.splice(setIndex, 1);
-        render();
-        showToast('セットを削除しました');
+        showToast('クリアしました');
       }
     });
 
     headerRight.appendChild(clearBtn);
-    headerRight.appendChild(moveUpBtn);
-    headerRight.appendChild(moveDownBtn);
-    headerRight.appendChild(deleteBtn);
 
     header.appendChild(headerLeft);
     header.appendChild(headerRight);
@@ -357,87 +323,41 @@
     textarea.style.height = textarea.scrollHeight + 'px';
   }
 
-  // --- Header Events ---
-  function bindHeaderEvents() {
-    addSetBtn.addEventListener('click', () => {
-      const num = state.sets.length + 1;
-      state.sets.push(createEmptySet(num));
+  // --- Events ---
+  function bindEvents() {
+    // Add Row Button
+    addRowBtn.addEventListener('click', () => {
+      state.rows++;
+      // Push 'cols' new sets to the end of the array
+      for (let c = 0; c < state.cols; c++) {
+        state.sets.push(createEmptySet());
+      }
       render();
-      // Scroll to new set
-      requestAnimationFrame(() => {
-        const lastSet = setsContainer.lastElementChild;
-        if (lastSet) {
-          lastSet.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-      showToast('セットを追加しました');
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      showToast('行を追加しました');
     });
 
+    // Add Col Button
+    addColBtn.addEventListener('click', () => {
+      // Need to insert 1 set at the end of each existing row
+      // We iterate backwards to avoid index shifting issues
+      for (let r = state.rows - 1; r >= 0; r--) {
+        const insertIndex = r * state.cols + state.cols;
+        state.sets.splice(insertIndex, 0, createEmptySet());
+      }
+      state.cols++;
+      render();
+      window.scrollTo({ left: document.body.scrollWidth, behavior: 'smooth' });
+      showToast('列を追加しました');
+    });
+
+    // Header Toggle (Collapse All)
     let allCollapsed = false;
     collapseAllBtn.addEventListener('click', () => {
       allCollapsed = !allCollapsed;
       state.sets.forEach(set => set.collapsed = allCollapsed);
       collapseAllBtn.textContent = allCollapsed ? '⊞ すべて展開' : '⊟ すべて折りたたむ';
       render();
-    });
-
-    saveBtn.addEventListener('click', () => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      showToast('保存しました');
-    });
-
-    loadBtn.addEventListener('click', () => {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          state = JSON.parse(saved);
-          render();
-          showToast('読み込みました');
-        } catch (e) {
-          showToast('読み込みに失敗しました');
-        }
-      } else {
-        showToast('保存データがありません');
-      }
-    });
-
-    exportBtn.addEventListener('click', () => {
-      const dataStr = JSON.stringify(state, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const dateStr = new Date().toISOString().slice(0, 10);
-      a.download = `taskgrid_${dateStr}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('エクスポートしました');
-    });
-
-    importBtn.addEventListener('click', () => {
-      importInput.click();
-    });
-
-    importInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const imported = JSON.parse(reader.result);
-          if (imported.sets && Array.isArray(imported.sets)) {
-            state = imported;
-            render();
-            showToast('インポートしました');
-          } else {
-            showToast('無効なファイル形式です');
-          }
-        } catch (err) {
-          showToast('インポートに失敗しました');
-        }
-      };
-      reader.readAsText(file);
-      importInput.value = '';
     });
   }
 
